@@ -13,7 +13,7 @@ print('##### Starting script #####')
 ####################################################################################
 ######################### Blend-file specific Configuration ########################
 # TODO: Change path to this file
-basepath = '/home/adashao/Documents/DL_robotics/dmvde/datageneration'
+basepath = '/home/adashao/Documents/DL-Robotics-Depth-Estimation/datageneration'
 
 # Make sure blender knows and uses available GPU devices
 bpy.context.preferences.addons['cycles'].preferences.get_devices()
@@ -87,7 +87,10 @@ bpy.data.scenes['Scene'].render.resolution_x = cfg['render']['resolution_x']
 bpy.data.scenes['Scene'].render.resolution_y = cfg['render']['resolution_y']
 
 ######################### Animation space values ###################################
-np.random.seed(cfg['experiment']['random_seed'])
+######################### Change ###################################
+# np.random.seed(cfg['experiment']['random_seed'])
+np.random.seed(datetime.now().microsecond)
+######################### Change ###################################
 # Original camera position and rotation (above the rubber plate)
 or_loc = mathutils.Vector(cfg['space_val']['camera']['loc'].values())
 or_rot = mathutils.Quaternion(cfg['space_val']['camera']['quat_rot'].values())
@@ -103,7 +106,6 @@ obj_rbp_space = cfg['space_val']['obj_spawn_space']
 Reset methods
 """
 
-
 def reset_cam():
     cam.animation_data_clear()
     cam.location = or_loc
@@ -111,7 +113,6 @@ def reset_cam():
 
     for con in cam.constraints.items():
         cam.constraints.remove(con[1])
-
 
 # Deletes all objects in the AnimatedObjects collection
 def reset_anim_objects():
@@ -123,12 +124,10 @@ def reset_anim_objects():
         obj.select_set(True)
     bpy.ops.object.delete(use_global=False, confirm=False)
 
-
 # Resets start and end frame to default
 def reset_frames():
     bpy.context.scene.frame_start = 0
     bpy.context.scene.frame_end = 240
-
 
 # Reset all markers on colour_ramp for all object classes
 def reset_colour_ramps():
@@ -143,7 +142,6 @@ def reset_colour_ramps():
             ramp.elements.remove(ramp.elements[-1])
         # Set last element's position to 0
         ramp.elements[0].position = 0
-
 
 # Reset shader materials which were possibly changed for segmentation purposes
 def reset_materials():
@@ -170,11 +168,9 @@ def reset_materials():
                 mat_name = [*orig_materials[obj.name]][m]
                 obj.data.materials[m] = bpy.data.materials.get(mat_name)
 
-
 # Resets the links in the compositing tree
 def reset_comp_tree_links():
     bpy.data.scenes[0].node_tree.links.clear()
-
 
 # Resets the power of the scene lights and strength of bg image
 def reset_lighting():
@@ -188,7 +184,6 @@ def reset_lighting():
         else:
             light.data.energy = cfg['experiment']['sun_light']['power']
             light.data.color = (cfg['experiment']['area_lights']['color'],) * 3
-
 
 ####################################################################################
 def randomize_lighting():
@@ -217,7 +212,6 @@ def randomize_lighting():
         light.data.color = tuple(np.random.uniform(
             low=color_mean - color_dev, high=color_mean + color_dev, size=3))
 
-
 def randomize_rbplate_texture():
     """
     Chooses a random texture for the 'RubberPlate' object out of the 'Plate_bg_' materials
@@ -242,7 +236,6 @@ def randomize_rbplate_texture():
 
     bpy.data.objects['RubberPlate'].data.materials[0] = material
 
-
 def change_bg_image(img_name=None, path=None):
     """
     Changes background image to random image provided in cfg or image specified by 
@@ -255,7 +248,6 @@ def change_bg_image(img_name=None, path=None):
         img = bpy.data.images[img_name]
 
     bpy.data.worlds['World'].node_tree.nodes['Environment Texture'].image = img
-
 
 def set_colour_ramps():
     """
@@ -294,7 +286,6 @@ def set_colour_ramps():
             alpha = 1
             ramp.elements[-1].color = colours[class_idx][i] + (alpha,)
 
-
 def get_rgb_colours(num_hues, num_levels):
     """
     Returns a set of num_hues * num_levels RGB values
@@ -316,7 +307,6 @@ def get_rgb_colours(num_hues, num_levels):
             colours[-1].append(colorsys.hsv_to_rgb(h, s, 1))
 
     return colours
-
 
 def assign_segment_mat():
     """
@@ -341,7 +331,6 @@ def assign_segment_mat():
     bpy.context.scene.world.use_nodes = False
     bpy.context.scene.world.color = bg_mat.node_tree.nodes['bg_colour'].color
 
-
 def cam_track_object(camera, target):
     """
     Makes camera track object by adding a track constraint and choosing the axis
@@ -351,7 +340,6 @@ def cam_track_object(camera, target):
     camera.constraints["Track To"].target = bpy.data.objects[target]
     camera.constraints["Track To"].track_axis = 'TRACK_NEGATIVE_Z'
     camera.constraints["Track To"].up_axis = 'UP_Y'
-
 
 def ran_loc(space_dict):
     """
@@ -363,7 +351,6 @@ def ran_loc(space_dict):
                                 [space_dict['xhigh'], space_dict['yhigh'], space_dict['zhigh']])
 
     return mathutils.Vector(ran_loc)
-
 
 def ran_quat_orientation():
     """
@@ -378,7 +365,6 @@ def ran_quat_orientation():
             np.sqrt(u) * np.cos(2 * np.pi * w))
 
     return mathutils.Quaternion(quat)
-
 
 def spawn_animated_object(objectname='LetterB', num_obj_inst=3, random_obj=False, space_dict=obj_rbp_space):
     """
@@ -417,7 +403,6 @@ def spawn_animated_object(objectname='LetterB', num_obj_inst=3, random_obj=False
                 new_obj)
         bpy.context.scene.rigidbody_world.collection.objects.link(new_obj)
 
-
 def animate_cam_predefined(start_frame=20, n_frames=5):
     """
     Makes predefined movements for the camera above the RubberPlate object and sets the keyframes accordingly.
@@ -444,7 +429,6 @@ def animate_cam_predefined(start_frame=20, n_frames=5):
 
         if current_frame > start_frame + n_frames:
             break
-
 
 def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
     """
@@ -508,7 +492,6 @@ def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
                                                         std=cfg['experiment']['cam_time_frame_std'],
                                                         min_int=min_time_interval)
 
-
 def sample_normal_with_minimum(mean, std, min_int):
     """
     Sample interval by sampling a Normal distribution parametrized by mean and std 
@@ -520,7 +503,6 @@ def sample_normal_with_minimum(mean, std, min_int):
         interval = np.random.normal(loc=mean, scale=std)
 
     return interval
-
 
 def stop_obj_animation():
     """
@@ -539,7 +521,6 @@ def stop_obj_animation():
         # tmp = obj.rotation_euler.to_matrix().to_4x4()
         # obj.rotation_euler = (tmp @ obj.matrix_world).to_euler()
         # Disable physics animation by setting kinematic (GUI: "Animated) to True
-
 
 def get_cam_intrinsics():
     """
@@ -573,7 +554,6 @@ def get_cam_intrinsics():
          [0, 0, 1]]
 
     return K
-
 
 def render(start_frame, n_frames, save_pose_depth=True, path=None):
     """
@@ -621,7 +601,6 @@ def render(start_frame, n_frames, save_pose_depth=True, path=None):
                 yaml.dump(pose_output, outfile, default_flow_style=False)
 
         print("### Finished rendering frame {} ###".format(f))
-
 
 def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
     """
@@ -766,7 +745,6 @@ def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
             os.rename(src, dst)
             i += 1
 
-
 def undistort_depth(depth_img):
     """
     Transforms a radially distorted depth image base on a pinhole camera to orthographic depth
@@ -788,7 +766,6 @@ def undistort_depth(depth_img):
         np.cos(np.arctan(d_pix / f_pix)), depth_img)
 
     return depth_undistorted
-
 
 def to_cam_coord(object, invert_z=False, bb=False):
     """
@@ -828,7 +805,6 @@ def to_cam_coord(object, invert_z=False, bb=False):
 
     return ret, bb
 
-
 def run(reset=True, animate=False, render=False, segmentation=False, randomize=False, seq_idx=None):
     """
     Runs different components of the programs in an aggregated way. Each component indicated
@@ -847,7 +823,10 @@ def run(reset=True, animate=False, render=False, segmentation=False, randomize=F
         randomize_lighting()
 
     if animate:
-        spawn_animated_object(random_obj=False,
+        ######################### Change ###################################
+        # spawn_animated_object(random_obj=False,
+        ######################### Change ###################################
+        spawn_animated_object(random_obj=True,
                               num_obj_inst=cfg['experiment']['num_spawned_obj_instances'],
                               space_dict=obj_rbp_space)
         cam_track_object(cam, "RubberPlate")
@@ -872,7 +851,6 @@ def run(reset=True, animate=False, render=False, segmentation=False, randomize=F
 
     if segmentation:
         assign_segment_mat()
-
 
 def main():
     """

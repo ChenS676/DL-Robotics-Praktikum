@@ -14,10 +14,10 @@ experiment:
   # mainly for continue rendering from last background used
 
   scene_start_idx: 0
-  n_scenes: 5 # TODO: number of different scene e.g. 200
+  n_scenes: 50 # TODO: number of different scene e.g. 200
 
   start_frame: 20 # Wait e.g. 20 frames for the objects to fall down before rendering
-  n_frames: 1 # TODO: number of frames per scene e.g. 2
+  n_frames: 3 # TODO: number of frames per scene e.g. 2
   # The _dev values in lights and background determine the deviation in uniform randomization
   # from the default value
   sun_light:
@@ -45,10 +45,10 @@ render:
   color_depth: "8" # orig: '16'  # number of bits per color channel
   # filepath: "/home/fd/output/blender/segment/filepathframe"  # might be deleted
 input:
-  bg_imgs: "/home/adashao/Documents/DL_robotics/dmvde/hdri_background/" # TODO: Change path with 360° HDR background images
+  bg_imgs: "/home/adashao/Documents/DL-Robotics-Depth-Estimation/hdri_background/" # TODO: Change path with 360° HDR background images
 output:
   # name: "absframeabs"
-  path: "/home/adashao/Documents/DL_robotics/dmvde/output" # TODO: Change output path
+  path: "/home/adashao/Documents/DL-Robotics-Depth-Estimation/output" # TODO: Change output path
 space_val:
   #Original camera position and rotation (above the rubber plate)
   camera:
