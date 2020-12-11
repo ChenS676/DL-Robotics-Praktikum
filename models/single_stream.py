@@ -13,10 +13,11 @@ from keras import backend as K
 from keras.applications.imagenet_utils import decode_predictions
 import tensorflow as tf
 from tensorflow.keras.layers.experimental import preprocessing
+from tensorflow.nn import softmax
 
-def double_stream(input_shape):
-
-    return 0
+# def double_stream(input_shape):
+#
+#     return 0
 
 # units = 32
 # timesteps = 10
@@ -24,25 +25,25 @@ def double_stream(input_shape):
 # batch_size = 16
 
 
-class CustomRNN(layers.Layer):
-    def __init__(self):
-        super(CustomRNN, self).__init__()
-        self.units = units
-        self.projection_1 = layers.Dense(units=units, activation="tanh")
-        self.projection_2 = layers.Dense(units=units, activation="tanh")
-        self.classifier = layers.Dense(1)
-
-    def call(self, inputs):
-        outputs = []
-        state = tf.zeros(shape=(inputs.shape[0], self.units))
-        for t in range(inputs.shape[1]):
-            x = inputs[:, t, :]
-            h = self.projection_1(x)
-            y = h + self.projection_2(state)
-            state = y
-            outputs.append(y)
-        features = tf.stack(outputs, axis=1)
-        return self.classifier(features)
+# class CustomRNN(layers.Layer):
+#     def __init__(self):
+#         super(CustomRNN, self).__init__()
+#         self.units = units
+#         self.projection_1 = layers.Dense(units=units, activation="tanh")
+#         self.projection_2 = layers.Dense(units=units, activation="tanh")
+#         self.classifier = layers.Dense(1)
+#
+#     def call(self, inputs):
+#         outputs = []
+#         state = tf.zeros(shape=(inputs.shape[0], self.units))
+#         for t in range(inputs.shape[1]):
+#             x = inputs[:, t, :]
+#             h = self.projection_1(x)
+#             y = h + self.projection_2(state)
+#             state = y
+#             outputs.append(y)
+#         features = tf.stack(outputs, axis=1)
+#         return self.classifier(features)
 
 
 # Note that you specify a static batch size for the inputs with the `batch_shape`
@@ -59,139 +60,134 @@ class CustomRNN(layers.Layer):
 
 
 
-def single_stream(input_shape = [32, 32, 3]):
+def single_stream(input_shape = [640, 480, 3]):
     """Takes a single tensor as input, such as an RGB image or a depth image.
     It consists of 16 convolutional layers, 4 max pooling layers, 2 deconvolutional layers
-    and i addition layer, all the convolutional filters in the network are of size 3*3 and stride 1.
+    and 1 addition layer, all the convolutional filters in the network are of size 3*3 and stride 1.
     The max pooling layers are of size 2 *2 and stride 2. Therefore each max pooling layers reduces the
     resolution of its output. The first deconvolutional layers doubles the resolution of its output
-    while the second deconvolutional layer increases the resolution by 8 times. -- dense pixelwise labeling"""
+    while the second deconvolutional layer increases the resolution by 8 times.
+
+    -- dense pixelwise labeling
+    The output of the 4th max pooling layer is 16 times smaller than the input image. The first deconvolutional
+    layer doubles the resolution of its input, while the second deconvolutional layer increases the resolution by
+    8 times. As a result, the output of the network has the same resolution as the input image, i.e.,
+    dense pixel-wise labeling.
+    """
 
 
     #--------------------------------------- preprocess ------------------------------------------#
     input = Input(shape=input_shape)
-    x = preprocessing.Resizing(32, 32, interpolation="bilinear", name="preprocess resize")(input)
-    x = preprocessing.Normalization(name="preprocess normalization")(x)
+    x = preprocessing.Resizing(128, 128, interpolation="bilinear", name="preprocess_resize")(input)
+    x = preprocessing.Normalization(name="preprocess_normalization")(x)
 
 
     #--------------------#
     # block1
     #--------------------#
     # --------------------------------------- conv1 ------------------------------------------#
-    x = Conv2D(64, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_1_conv1')(x)
+    x = Conv2D(64, (3, 3), strides=(1, 1), use_bias=False, padding="same", activation='relu', name='feature_extraction_block_1_conv1')(x)
     x = BatchNormalization(name='feature_extraction_block_1_bn1')(x)
-    x = Activation('relu', name='feature_extraction_block_1_conv_act1')(x)
 
     # --------------------------------------- conv2 ------------------------------------------#
-    x = Conv2D(64, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_1_conv2')(x)
+    x = Conv2D(64, (3, 3), strides=(1, 1), use_bias=False, padding="same", activation='relu', name='feature_extraction_block_1_conv2')(x)
     x = BatchNormalization(name='feature_extraction_block_1_bn2')(x)
-    x = Activation('relu', name='feature_extraction_block_1_act2')(x)
 
     # --------------------------------------- pooling2 ------------------------------------------#
+    # (x-4)/2
     x = MaxPooling2D((2, 2), strides=(2, 2), padding='same', name='feature_extraction_block_1_pooling3')(x)
-    x = BatchNormalization(name='feature_extraction_block_1_bn_3')(x)
-
+    x_block1 = BatchNormalization(name='feature_extraction_block_1_bn_3')(x)
+    # 318, 248
 
     #--------------------#
     # block2
     #--------------------#
     # --------------------------------------- conv1 ------------------------------------------#
-    x = Conv2D(128, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_2_conv1')(x)
+    x = Conv2D(128, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_2_conv1')(x_block1)
     x = BatchNormalization(name='feature_extraction_block_2_bn1')(x)
-    x = Activation('relu', name='feature_extraction_block_2_act1')(x)
+
 
     # --------------------------------------- conv2 ------------------------------------------#
-    x = Conv2D(128, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_2_conv2')(x)
+    x = Conv2D(128, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_2_conv2')(x)
     x = BatchNormalization(name='feature_extraction_block_2_bn2')(x)
-    x = Activation('relu', name='feature_extraction_block_2_act2')(x)
 
     # --------------------------------------- pooling2 ------------------------------------------#
     x = MaxPooling2D((2, 2), strides=(2, 2), padding='same', name='feature_extraction_block_2_pooling3')(x)
-    x = BatchNormalization(name='feature_extraction_block_2_bn_3')(x)
+    x_block2 = BatchNormalization(name='feature_extraction_block_2_bn_3')(x)
 
 
     #--------------------#
     # block3
     #--------------------#
     # --------------------------------------- conv1 ------------------------------------------#
-    x = Conv2D(256, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_3_conv1')(x)
+    x = Conv2D(256, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_3_conv1')(x_block2)
     x = BatchNormalization(name='feature_extraction_block_3_bn1')(x)
-    x = Activation('relu', name='feature_extraction_block_3_act1')(x)
 
     # --------------------------------------- conv2 ------------------------------------------#
-    x = Conv2D(256, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_3_conv2')(x)
+    x = Conv2D(256, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_3_conv2')(x)
     x = BatchNormalization(name='feature_extraction_block_3_bn2')(x)
-    x = Activation('relu', name='feature_extraction_block_3_act2')(x)
 
     # --------------------------------------- conv3 ------------------------------------------#
-    x = Conv2D(256, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_3_conv3')(x)
+    x = Conv2D(256, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_3_conv3')(x)
     x = BatchNormalization(name='feature_extraction_block_3_bn3')(x)
-    x = Activation('relu', name='feature_extraction_block_3_act3')(x)
 
     # --------------------------------------- pooling2 ------------------------------------------#
     x = MaxPooling2D((2, 2), strides=(2, 2), padding='same', name='feature_extraction_block_3_pooling4')(x)
-    x = BatchNormalization(name='feature_extraction_block_3_bn_4')(x)
+    x_block3 = BatchNormalization(name='feature_extraction_block_3_bn_4')(x)
 
     # --------------------#
     # block4
     # --------------------#
     # --------------------------------------- conv1 ------------------------------------------#
-    x = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_4_conv1')(x)
+    x = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_4_conv1')(x_block3)
     x = BatchNormalization(name='feature_extraction_block_4_bn1')(x)
-    x = Activation('relu', name='feature_extraction_block_4_act1')(x)
+
 
     # --------------------------------------- conv2 ------------------------------------------#
-    x = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_4_conv2')(x)
+    x = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_4_conv2')(x)
     x = BatchNormalization(name='feature_extraction_block_4_bn2')(x)
-    x = Activation('relu', name='feature_extraction_block_4_act2')(x)
+
 
     # --------------------------------------- conv3 ------------------------------------------#
-    x = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_4_conv3')(x)
-    x = BatchNormalization(name='feature_extraction_block_4_bn3')(x)
-    residual = Activation('relu', name='feature_extraction_block_4_act3')(x)
+    x = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_4_conv3')(x)
+    residual = BatchNormalization(name='feature_extraction_block_4_bn3')(x)
 
     # --------------------#
     # first split
     # --------------------#
-    x1 = Conv2D(64, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_1_conv1')(residual)
-    x1 = BatchNormalization(name='feature_extraction_block_1_bn1')(x1)
-    add2 = Activation('relu', name='feature_extraction_block_1_conv_act1')(x1)
-
+    x1 = Conv2D(64, (3, 3), strides=(1, 1), use_bias=False,  activation='relu', padding="same", name='split_block_4_conv4')(residual)
+    add2 = BatchNormalization(name='split_block_4_bn4')(x1)
 
     # --------------------#
     # second split
     # --------------------#
-
     # --------------------------------------- pooling2 ------------------------------------------#
     x2 = MaxPooling2D((2, 2), strides=(2, 2), padding='same', name='feature_extraction_block_4_pooling4')(residual)
-    x2 = BatchNormalization(name='feature_extraction_block_4_bn_4')(x2)
+    x_block4 = BatchNormalization(name='feature_extraction_block_4_bn_4')(x2)
 
     # --------------------#
     # block5
     # --------------------#
     # --------------------------------------- conv1 ------------------------------------------#
-    x = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_5_conv1')(x2)
-    x = BatchNormalization(name='feature_extraction_block_5_bn1')(x)
-    x = Activation('relu', name='feature_extraction_block_5_act1')(x)
+    x2 = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_5_conv1')(x_block4)
+    x2 = BatchNormalization(name='feature_extraction_block_5_bn1')(x2)
 
     # --------------------------------------- conv2 ------------------------------------------#
-    x = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_5_conv2')(x)
-    x = BatchNormalization(name='feature_extraction_block_5_bn2')(x)
-    x = Activation('relu', name='feature_extraction_block_5_act2')(x)
+    x2 = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_5_conv2')(x2)
+    x2 = BatchNormalization(name='feature_extraction_block_5_bn2')(x2)
+
 
     # --------------------------------------- conv3 ------------------------------------------#
-    x = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_5_conv3')(x)
-    x = BatchNormalization(name='feature_extraction_block_5_bn3')(x)
-    x = Activation('relu', name='feature_extraction_block_5_act3')(x)
+    x2 = Conv2D(512, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_5_conv3')(x2)
+    x2 = BatchNormalization(name='feature_extraction_block_5_bn3')(x2)
 
-    x = Conv2D(64, (3, 3), strides=(1, 1), use_bias=False, name='feature_extraction_block_5_conv4')(x)
-    x = BatchNormalization(name='feature_extraction_block_5_bn1')(x)
-    x = Activation('relu', name='feature_extraction_block_5_conv_act1')(x)
+
+    x2 = Conv2D(64, (3, 3), strides=(1, 1), use_bias=False, activation='relu', padding="same", name='feature_extraction_block_5_conv4')(x2)
+    x2 = BatchNormalization(name='feature_extraction_block_5_bn4')(x2)
 
     # ----------------------------------------deconv 4 ----------------------------------------#
-    x = Conv2DTranspose(64, (3, 3), strides=2, padding='same', kernel_initializer='glorot_uniform', activation='relu', name='embedding deconv 1', dilations=2)(x)
-    add1 = BatchNormalization(name='embedding_bn1')(x)
-
+    x2 = Conv2DTranspose(64, (3, 3), strides=2, padding='same', kernel_initializer='glorot_uniform', activation='relu', name='embedding_deconv1', dilation_rate=(1, 1))(x2)
+    add1 = BatchNormalization(name='embedding_bn1')(x2)
 
     # --------------------#
     # first merge
@@ -199,16 +195,16 @@ def single_stream(input_shape = [32, 32, 3]):
     x = layers.add([add1, add2])
 
     # ----------------------------------------deconv 5  ----------------------------------------#
-    x = Conv2DTranspose(64, (3, 3), strides=2, padding='same', kernel_initializer='glorot_uniform', activation='relu', name='embedding deconv 2', dilations=8)(x)
+    x = Conv2DTranspose(64, (3, 3), strides=8, padding='same', kernel_initializer='glorot_uniform', activation='relu', name='embedding_deconv2', dilation_rate=1)(x)
     x = BatchNormalization(name='embedding_bn2')(x)
 
 
-    x = Conv2D(3, (3, 3), strides=(1, 1), padding='same', use_bias=False)(x)
+    x = Conv2D(3, (3, 3), strides=(1, 1), padding='same', use_bias=False, name='classification_layer')(x)
     x = BatchNormalization()(x)
 
-    output = Softmax(x)
+    output = softmax(x)
 
-    model = Model(inputs=input, outputs=output, name='single stream DA-RNN')
+    model = Model(inputs=input, outputs=output, name='single_stream_DA-RNN')
 
     # model.load_weights("xception_weights_tf_dim_ordering_tf_kernels.h5")
 

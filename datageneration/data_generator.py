@@ -18,7 +18,7 @@ from IPython.display import clear_output
 import matplotlib.pyplot as plt
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
-from models import single_stream
+from models.single_stream import single_stream
 
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
