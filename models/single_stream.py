@@ -14,7 +14,7 @@ from keras.applications.imagenet_utils import decode_predictions
 import tensorflow as tf
 from tensorflow.keras.layers.experimental import preprocessing
 from tensorflow.nn import softmax
-
+import numpy as np
 # def double_stream(input_shape):
 #
 #     return 0
@@ -60,7 +60,7 @@ from tensorflow.nn import softmax
 
 
 
-def single_stream(input_shape = [640, 480, 3]):
+def single_stream(input_shape: np.ndarray):
     """Takes a single tensor as input, such as an RGB image or a depth image.
     It consists of 16 convolutional layers, 4 max pooling layers, 2 deconvolutional layers
     and 1 addition layer, all the convolutional filters in the network are of size 3*3 and stride 1.

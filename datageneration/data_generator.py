@@ -1,3 +1,4 @@
+""" https://www.tensorflow.org/tutorials/images/segmentation"""
 import argparse
 from datetime import date
 import time
@@ -11,6 +12,7 @@ from pathlib import Path, PurePath, PurePosixPath
 import itertools
 import tensorflow as tf
 from tensorflow_examples.models.pix2pix import pix2pix
+
 
 import tensorflow_datasets as tfds
 
@@ -128,11 +130,14 @@ class DisplayCallback(tf.keras.callbacks.Callback):
         print('\nSample Prediction after epoch {}\n'.format(epoch + 1))
 
 TRAIN_LENGTH = info.splits['train'].num_examples
-BATCH_SIZE = 1
-BUFFER_SIZE = 1000
+BATCH_SIZE = 4
+BUFFER_SIZE = 20
 STEPS_PER_EPOCH = TRAIN_LENGTH // BATCH_SIZE
 OUTPUT_CHANNELS = 3
 
+EPOCHS = 100
+VAL_SUBSPLITS = 5
+VALIDATION_STEPS = info.splits['test'].num_examples // BATCH_SIZE // VAL_SUBSPLITS
 
 train = dataset['train'].map(load_image_train, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 test = dataset['test'].map(load_image_test)
@@ -142,17 +147,10 @@ train_dataset = train.cache().shuffle(BUFFER_SIZE).batch(BATCH_SIZE).repeat()
 train_dataset = train_dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 test_dataset = test.batch(BATCH_SIZE)
 
-
-
-model = single_stream()
+model = single_stream([128, 128, 3])
 model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
-
-
-EPOCHS = 1
-VAL_SUBSPLITS = 5
-VALIDATION_STEPS = info.splits['test'].num_examples // BATCH_SIZE // VAL_SUBSPLITS
 
 
 train_loss_results = []
@@ -160,12 +158,12 @@ train_accuracy_results = []
 val_loss_results = []
 val_accuracy_results = []
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=0.00001)
+optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
 # loss_value, grads = grad(model, image, mask)
 # optimizer.apply_gradients(zip(grads, model.trainable_variables))
-num_epochs = 100
 
-for epoch in range(num_epochs):
+
+for epoch in range(EPOCHS):
 
     train_image, train_mask = train_dataset.cache().as_numpy_iterator().next()
     val_image, val_mask = test_dataset.cache().as_numpy_iterator().next()
@@ -204,7 +202,7 @@ for epoch in range(num_epochs):
                                                                     epoch_acc_train.result()))
 
 
-epochs = range(num_epochs)
+epochs = range(EPOCHS)
 
 plt.figure()
 plt.plot(epochs, train_loss_results, 'r', label='Training loss')
