@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 from tensorflow.compat.v1 import ConfigProto
 from tensorflow.compat.v1 import InteractiveSession
 from models.single_stream import single_stream, single_blockwise_stream
+from models.double_stream import double_stream
 
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
@@ -41,6 +42,7 @@ session = InteractiveSession(config=config)
 #      (tf.TensorShape([]), tf.TensorShape([None])))
 
 # list(dataset.take(3).as_numpy_iterator())
+
 
 # pip install -q git+https://github.com/tensorflow/examples.git
 # pip install -q -U tfds-nightly
@@ -110,11 +112,10 @@ def show_predictions(dataset=None, num=1):
 def loss(model, x, y, training):
   # training=training is needed only if there are layers with different
   # behavior during training versus inference (e.g. Dropout).
-  y_ = model(x, training=training)
+  y_ = model([x, x], training=training)
   y/=y.max()
-  # y_ = model(np.expand_dims(x, axis=0), training=training)
   return tf.keras.losses.MSE(y_true=y, y_pred=y_)
-  # return tf.keras.losses.MSE(y_true=y, y_pred=np.expand_dims(y_, axis=0))
+
 
 
 def grad(model, inputs, targets):
@@ -148,7 +149,7 @@ train_dataset = train.cache().shuffle(BUFFER_SIZE).batch(BATCH_SIZE).repeat()
 train_dataset = train_dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
 test_dataset = test.batch(BATCH_SIZE)
 
-model = single_blockwise_stream([128, 128, 3], 1)
+model = double_stream([128, 128, 3], 1)
 model.compile(optimizer='adam',
               loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
               metrics=['accuracy'])
@@ -160,8 +161,6 @@ val_loss_results = []
 val_accuracy_results = []
 
 optimizer = tf.keras.optimizers.Adam(learning_rate=0.0001)
-# loss_value, grads = grad(model, image, mask)
-# optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
 
 for epoch in range(EPOCHS):
