@@ -1,18 +1,30 @@
 # --------------------------------------------------------
 # DA-RNN
 # Double Stream Network
-# --------------------------------------------------------
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 from keras.models import Model
 from keras import layers
 from keras.layers import Dense, Input, BatchNormalization, Activation, Conv2D, SeparableConv2D, MaxPooling2D, Conv2DTranspose, Softmax, Concatenate
-from keras.layers import GlobalAveragePooling2D, GlobalMaxPooling2D
-from keras import backend as K
-from keras.applications.imagenet_utils import decode_predictions
-import tensorflow as tf
 from tensorflow.keras.layers.experimental import preprocessing
 from tensorflow.nn import softmax
 import numpy as np
 from models.single_stream import block1, block2
+import abc
+import tensorflow as tf
+import numpy as np
+from tf_agents.environments import random_py_environment
+from tf_agents.environments import tf_py_environment
+from tf_agents.networks import encoding_network
+from tf_agents.networks import network
+from tf_agents.networks import utils
+from tf_agents.specs import array_spec
+from tf_agents.utils import common as common_utils
+from tf_agents.utils import nest_utils
+
+tf.compat.v1.enable_v2_behavior()
 
 def create_subnet(input_shape: np.ndarray, output_classes:int):
     """create downstream network in double stream network"""
@@ -26,22 +38,6 @@ def create_subnet(input_shape: np.ndarray, output_classes:int):
     _, stcut_b5_2 = block2(x2_block4, 512, kernal_size=3, stride=1, pooling_size=2, pooling_stride=2, shortcut=True, name="x2_block5")
     model = Model(input2, [stcut_b4_2, stcut_b5_2])
     return model
-
-
-
-
-# --------------------------------------------------------
-from keras.models import Model
-from keras import layers
-from keras.layers import Dense, Input, BatchNormalization, Activation, Conv2D, SeparableConv2D, MaxPooling2D, Conv2DTranspose, Softmax, Concatenate
-from keras.layers import GlobalAveragePooling2D, GlobalMaxPooling2D
-from keras import backend as K
-from keras.applications.imagenet_utils import decode_predictions
-import tensorflow as tf
-from tensorflow.keras.layers.experimental import preprocessing
-from tensorflow.nn import softmax
-import numpy as np
-from models.single_stream import block1, block2
 
 
 def double_stream(input_shape: np.ndarray, output_classes:int):
@@ -140,3 +136,13 @@ def double_stream(input_shape: np.ndarray, output_classes:int):
     model = Model([input1, input2], output, name='double_stream_DA-RNN')
 
     return model
+
+# https://www.tensorflow.org/guide/keras/custom_layers_and_models
+class Double_Stream(tf.keras.Model):
+    def __init__(self,
+                 preprocessing_layer=None,
+                 dropout_layer_params=None,
+                 name="Double_Stream"):
+        super(Double_Stream, self).__init__(
+            name=name
+        )
