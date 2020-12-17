@@ -43,7 +43,7 @@ def get_exr_rgb(path):
     return (img*255).astype(np.uint8)
 
 def get_exr_depth(filepath: Path):
-    exrfile = OpenEXR.InputFile(filepath.as_posix())
+    exrfile = OpenEXR.InputFile(Path(filepath).as_posix())
     raw_bytes = exrfile.channel('Z.V', Imath.PixelType(Imath.PixelType.FLOAT))
     depth_vector = np.frombuffer(raw_bytes, dtype=np.float32)
     height = exrfile.header()['displayWindow'].max.y + \
