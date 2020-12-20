@@ -14,7 +14,6 @@ print('##### Starting script #####')
 ######################### Blend-file specific Configuration ########################
 # TODO: Change path to this file
 basepath = '/home/adashao/Documents/DL-Robotics-Depth-Estimation/datageneration'
-
 # Make sure blender knows and uses available GPU devices
 bpy.context.preferences.addons['cycles'].preferences.get_devices()
 
@@ -22,6 +21,10 @@ bpy.context.preferences.addons['cycles'].preferences.get_devices()
 cam = bpy.data.objects['CameraOrbbec']
 # List of objects that are spawned and animated
 object_list = bpy.data.collections['AnimatedPrototypes'].objects.keys()
+
+####################################################################################
+######################### Configuration ############################################
+####################################################################################
 
 datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -39,11 +42,7 @@ if dump_materials:
     with open(basepath + '/material_cfg.yaml', 'w') as outfile:
         yaml.dump(orig_materials, outfile, default_flow_style=False)
 
-####################################################################################
-######################### Configuration ############################################
-####################################################################################
-
- # You can update this config file to change render parameters
+# You can update this config file to change render parameters
 with open(basepath + '/ALR_Praktikum_cfg.yaml', 'r') as cfg_file:
     cfg = yaml.load(cfg_file, Loader=yaml.SafeLoader)
 
@@ -90,6 +89,7 @@ bpy.data.scenes['Scene'].render.resolution_y = cfg['render']['resolution_y']
 ######################### Change ###################################
 # np.random.seed(cfg['experiment']['random_seed'])
 np.random.seed(datetime.now().microsecond)
+
 ######################### Change ###################################
 # Original camera position and rotation (above the rubber plate)
 or_loc = mathutils.Vector(cfg['space_val']['camera']['loc'].values())
@@ -105,7 +105,6 @@ obj_rbp_space = cfg['space_val']['obj_spawn_space']
 """
 Reset methods
 """
-
 def reset_cam():
     cam.animation_data_clear()
     cam.location = or_loc
@@ -153,7 +152,7 @@ def reset_materials():
         orig_materials = yaml.load(cfg_file, Loader=yaml.SafeLoader)
 
     for obj in bpy.data.objects:
-
+        print(obj)
         # For objects in AnimatedObjects collection, the original material might not be saved;
         # just take the prototype's material
         if obj.name in bpy.data.collections['AnimatedObjects'].all_objects.keys():
@@ -390,7 +389,8 @@ def spawn_animated_object(objectname='LetterB', num_obj_inst=3, random_obj=False
         new_obj = object.copy()
         new_obj.data = object.data.copy()
         new_obj.location = loc
-        new_obj.rotation_mode = 'QUATERNION'
+        # TODO  origin new_obj.rotation_mode = 'QUATERNION'
+        new_obj.rotation_mode = 'XYZ'
         new_obj.rotation_quaternion = rot_quat
         new_obj.pass_index = int(n % num_obj_inst)
 
@@ -407,14 +407,12 @@ def animate_cam_predefined(start_frame=20, n_frames=5):
     """
     Makes predefined movements for the camera above the RubberPlate object and sets the keyframes accordingly.
     """
-
     locs = [
         (-0.8, 0.0, 1.29),
         (-0.77, -0.02, 1.27),
         (-0.77, 0.02, 1.27),
         (-0.74, 0, 1.33),
     ]
-
     current_frame = start_frame
     for loc in locs:
         # bpy.ops.object.select_all(action='DESELECT')
@@ -447,6 +445,7 @@ def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
     min_time_interval = avg_time_interval / 2
 
     # Calculate evenly distributed locations on ring around center of RubberPlate
+    # TODO avg_angle_diff = 2 * np.pi / (num_moves + 1)
     avg_angle_diff = 2 * np.pi / (num_moves + 1)
     min_angle_diff = avg_angle_diff / 2
     current_angle = 0  # np.pi #Start position
@@ -632,7 +631,7 @@ def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
             yaml.dump(cfg, outfile, default_flow_style=False)
     else:
         # Use fixed output path for all images
-        output_dir = cfg['output']['path']
+        output_dir = basepath + '/' + cfg['output']['path']
         os.makedirs(output_dir, exist_ok=True)
 
         path = os.path.join(cfg['output']['path'], 'images', 'im{:04d}gt.png')
@@ -828,7 +827,7 @@ def run(reset=True, animate=False, render=False, segmentation=False, randomize=F
         ######################### Change ###################################
         spawn_animated_object(random_obj=True,
                               num_obj_inst=cfg['experiment']['num_spawned_obj_instances'],
-                              space_dict=obj_rbp_space)
+                              space_dict=cfg['space_val']['obj_spawn_space'])
         cam_track_object(cam, "RubberPlate")
         if cfg['experiment']['camera_movement_predefined']:
             print("follow predefined camera trajectory")
@@ -861,6 +860,7 @@ def main():
     image rotated around z-axis by 90°
     """
     print("PPPPPP")
+
     cfg['output']['path'] += '_' + datetime_str
     if not cfg['experiment']['mode']['sequence']:
         if cfg['experiment']['n_frames'] > 1:
@@ -889,7 +889,7 @@ def main():
             break
 
         bg_img = bg_imgs[int(n / 4)]
-        bg_img_path = img_path + bg_img
+        bg_img_path = img_path + '/' + bg_img
 
         # print("bg_img", bg_img)
         # print("bg_img_path", bg_img_path)
@@ -928,7 +928,7 @@ def main():
             # bpy.data.worlds['World'].node_tree.nodes["Mapping"].rotation[2] = 0
             # bpy.data.worlds['World'].node_tree.nodes["Mapping"].scale[1] = -1
 
-        #        run(reset=True, animate=True, render=True, segmentation=True, randomize=True)
+        #run(reset=True, animate=True, render=True, segmentation=True, randomize=True)
         run(reset=True, animate=True, render=True,
             segmentation=False, randomize=True, seq_idx=n)
 
@@ -939,31 +939,6 @@ def main():
         with open(cfg['output']['path'] + '/cfg.yaml', 'w') as outfile:
             yaml.dump(cfg, outfile, default_flow_style=False)
 
-
-# reset_colour_ramps()
-# set_colour_ramps()
-# assign_segment_mat()
-# reset_comp_tree _links()
-# reset_materials()
-# change_bg_image(path='/home/bol7tue/git/pcl_pose_estimation/dat/hdri_background/xiequ_yuan_4k_flop.hdr')
-# stop_obj_animation()
-# cam_track_object(cam, 'RubberPlate')
-# reset_lighting()
-# randomize_lighting()
-# randomize_rbplate_texture()
-# reset_cam()
-# cam_track_object(cam, 'RubberPlate')
-# ran_animate_cam(cfg['experiment']['num_camera_moves'], cfg['experiment']['start_frame'], cfg['experiment']['n_frames'])
-
 main()
-
-# run()
-
-# run(reset=True, animate=True, render=False, segmentation=False)
-# run(reset=True, animate=True, render=False, segmentation=True)
-# run(reset=True, animate=True, render=True, segmentation=False)
-# run(reset=True, animate=True, render=True, segmentation=True)
-# run(reset=False, animate=False, render=True, segmentation=True)
-
 
 print('##### Finished script animate_camera.py #####')

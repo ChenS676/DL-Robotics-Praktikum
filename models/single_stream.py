@@ -3,14 +3,13 @@
 # Single Stream Network
 # --------------------------------------------------------
 
-from keras.models import Model
-from keras import layers
-from keras.layers import Dense, Input, BatchNormalization, Activation, Conv2D, SeparableConv2D, MaxPooling2D, Conv2DTranspose, Softmax
-from keras.layers import GlobalAveragePooling2D, GlobalMaxPooling2D
-from keras import backend as K
-from keras.applications.imagenet_utils import decode_predictions
-import tensorflow as tf
-from tensorflow.keras.layers.experimental import preprocessing
+
+from tensorflow.python.keras.models import Model
+from tensorflow.python.keras import layers
+from tensorflow.python.keras.layers import Dense, Input, BatchNormalization, Activation, Conv2D, SeparableConv2D, MaxPooling2D, Conv2DTranspose, Softmax
+
+# from tensorflow.python.keras import backend as K
+from keras.layers.experimental import preprocessing
 from tensorflow.nn import softmax
 import numpy as np
 from tensorflow.python.keras import backend

@@ -144,6 +144,7 @@ class Depth_DirectoryIterator():
             self.index_array = np.random.permutation(self.n)
 
     def __getitem__(self, idx):
+        """When you want to use x[index_array], y[index_array]"""
         if idx >= len(self):
             raise ValueError('Asked to retrieve element {idx}, '
                              'but the Sequence '

@@ -1,16 +1,17 @@
-DriveShaft: {Material.MetalShaft}
-Finger-Left: {Metal}
-Finger-Right: {Metal}
-Floor: {MaterialEpoxyFloor}
-LetterB: {Material.Red}
-OrbbecModel: {MaterialCameraOrbbec}
-RedCube: {Material.Red}
-Rexroth-3 842 992 415 200MM.000: {Material.BoschProfile}
-Rexroth-3 842 992 415 200MM.008: {Material.BoschProfile}
-RubberPlate: {MaterialRubberPlate}
-Tool.Cap: {Material.ToolCap}
-BrakingUnit: {ME_BRUSHED METAL}
-T-less_08: {YellowPlastic_Matt}
-T-less_18: {SY_carbon_fiber}
-T-less_27: {SY_basic_plastic_dull_red}
+DriveShaft: { Material.MetalShaft }
+Finger-Left: { Metal }
+Finger-Right: { Metal }
+Floor: { MaterialEpoxyFloor }
+LetterB: { Material.Red }
+OrbbecModel: { MaterialCameraOrbbec }
+RedCube: { Material.Red }
+Rexroth-3 842 992 415 200MM.000: { Material.BoschProfile }
+Rexroth-3 842 992 415 200MM.008: { Material.BoschProfile }
+RubberPlate: { MaterialRubberPlate }
+Box: { MaterialRubberPlate }
+Tool.Cap: { Material.ToolCap }
+BrakingUnit: { ME_BRUSHED METAL }
+T-less_08: { YellowPlastic_Matt }
+T-less_18: { SY_carbon_fiber }
+T-less_27: { SY_basic_plastic_dull_red }
 datetime: 2020-04-09_16:24:35
