@@ -8,12 +8,14 @@ import OpenEXR
 import array  # for transforming read exr to python-usable
 # import imageio
 import yaml
+from datetime import datetime
 
 print('##### Starting script #####')
 ####################################################################################
 ######################### Blend-file specific Configuration ########################
 # TODO: Change path to this file
 basepath = '/home/adashao/Documents/DL-Robotics-Depth-Estimation/datageneration'
+
 # Make sure blender knows and uses available GPU devices
 bpy.context.preferences.addons['cycles'].preferences.get_devices()
 
@@ -21,10 +23,6 @@ bpy.context.preferences.addons['cycles'].preferences.get_devices()
 cam = bpy.data.objects['CameraOrbbec']
 # List of objects that are spawned and animated
 object_list = bpy.data.collections['AnimatedPrototypes'].objects.keys()
-
-####################################################################################
-######################### Configuration ############################################
-####################################################################################
 
 datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 
@@ -42,7 +40,11 @@ if dump_materials:
     with open(basepath + '/material_cfg.yaml', 'w') as outfile:
         yaml.dump(orig_materials, outfile, default_flow_style=False)
 
-# You can update this config file to change render parameters
+####################################################################################
+######################### Configuration ############################################
+####################################################################################
+
+ # You can update this config file to change render parameters
 with open(basepath + '/ALR_Praktikum_cfg.yaml', 'r') as cfg_file:
     cfg = yaml.load(cfg_file, Loader=yaml.SafeLoader)
 
@@ -86,11 +88,7 @@ bpy.data.scenes['Scene'].render.resolution_x = cfg['render']['resolution_x']
 bpy.data.scenes['Scene'].render.resolution_y = cfg['render']['resolution_y']
 
 ######################### Animation space values ###################################
-######################### Change ###################################
-# np.random.seed(cfg['experiment']['random_seed'])
 np.random.seed(datetime.now().microsecond)
-
-######################### Change ###################################
 # Original camera position and rotation (above the rubber plate)
 or_loc = mathutils.Vector(cfg['space_val']['camera']['loc'].values())
 or_rot = mathutils.Quaternion(cfg['space_val']['camera']['quat_rot'].values())
@@ -105,6 +103,7 @@ obj_rbp_space = cfg['space_val']['obj_spawn_space']
 """
 Reset methods
 """
+
 def reset_cam():
     cam.animation_data_clear()
     cam.location = or_loc
@@ -112,6 +111,7 @@ def reset_cam():
 
     for con in cam.constraints.items():
         cam.constraints.remove(con[1])
+
 
 # Deletes all objects in the AnimatedObjects collection
 def reset_anim_objects():
@@ -123,10 +123,12 @@ def reset_anim_objects():
         obj.select_set(True)
     bpy.ops.object.delete(use_global=False, confirm=False)
 
+
 # Resets start and end frame to default
 def reset_frames():
     bpy.context.scene.frame_start = 0
     bpy.context.scene.frame_end = 240
+
 
 # Reset all markers on colour_ramp for all object classes
 def reset_colour_ramps():
@@ -137,10 +139,10 @@ def reset_colour_ramps():
         ramp = shader_nodes["SegColour"].color_ramp
 
         # Clear any elements - cannot remove the last element
-        for i in range(len(ramp.elements) - 1):
-            ramp.elements.remove(ramp.elements[-1])
+        for i in range(len(ramp.elements) - 1): ramp.elements.remove(ramp.elements[-1])
         # Set last element's position to 0
         ramp.elements[0].position = 0
+
 
 # Reset shader materials which were possibly changed for segmentation purposes
 def reset_materials():
@@ -152,7 +154,7 @@ def reset_materials():
         orig_materials = yaml.load(cfg_file, Loader=yaml.SafeLoader)
 
     for obj in bpy.data.objects:
-        print(obj)
+
         # For objects in AnimatedObjects collection, the original material might not be saved;
         # just take the prototype's material
         if obj.name in bpy.data.collections['AnimatedObjects'].all_objects.keys():
@@ -167,9 +169,11 @@ def reset_materials():
                 mat_name = [*orig_materials[obj.name]][m]
                 obj.data.materials[m] = bpy.data.materials.get(mat_name)
 
+
 # Resets the links in the compositing tree
 def reset_comp_tree_links():
     bpy.data.scenes[0].node_tree.links.clear()
+
 
 # Resets the power of the scene lights and strength of bg image
 def reset_lighting():
@@ -183,6 +187,7 @@ def reset_lighting():
         else:
             light.data.energy = cfg['experiment']['sun_light']['power']
             light.data.color = (cfg['experiment']['area_lights']['color'],) * 3
+
 
 ####################################################################################
 def randomize_lighting():
@@ -206,10 +211,9 @@ def randomize_lighting():
             light_mean = cfg['experiment']['sun_light']['power']
             light_dev = cfg['experiment']['sun_light']['power_dev']
 
-        light.data.energy = np.random.uniform(
-            low=light_mean - light_dev, high=light_mean + light_dev)
-        light.data.color = tuple(np.random.uniform(
-            low=color_mean - color_dev, high=color_mean + color_dev, size=3))
+        light.data.energy = np.random.uniform(low=light_mean - light_dev, high=light_mean + light_dev)
+        light.data.color = tuple(np.random.uniform(low=color_mean - color_dev, high=color_mean + color_dev, size=3))
+
 
 def randomize_rbplate_texture():
     """
@@ -219,25 +223,24 @@ def randomize_rbplate_texture():
     """
 
     mats = bpy.data.materials.keys()
-    material = bpy.data.materials[np.random.choice(
-        [m for m in mats if 'Plate_bg' in m])]
+    material = bpy.data.materials[np.random.choice([m for m in mats if 'Plate_bg' in m])]
 
     col_nodes = [material.node_tree.nodes['rgb_ran1'],
                  material.node_tree.nodes['rgb_ran2']]
 
     for n in col_nodes:
         ran_rgb = colorsys.hsv_to_rgb(np.random.uniform(0, 1),  # Cover all hue range
-                                      # Only choose saturation values bigger than 0.5
-                                      np.random.uniform(0.5, 1),
+                                      np.random.uniform(0.5, 1),  # Only choose saturation values bigger than 0.5
                                       1)
 
         n.outputs[0].default_value = ran_rgb + (1,)
 
     bpy.data.objects['RubberPlate'].data.materials[0] = material
 
+
 def change_bg_image(img_name=None, path=None):
     """
-    Changes background image to random image provided in cfg or image specified by 
+    Changes background image to random image provided in cfg or image specified by
     img_name
     If path is set, first loads the image specified by path
     """
@@ -248,15 +251,15 @@ def change_bg_image(img_name=None, path=None):
 
     bpy.data.worlds['World'].node_tree.nodes['Environment Texture'].image = img
 
+
 def set_colour_ramps():
     """
     Set the segmentation colour ramp properties for every object class
-    Each object class has its segmentation material and its own hue, different 
+    Each object class has its segmentation material and its own hue, different
     instances receive different saturation levels
     """
     num_class = len(object_list)
-    # Maximum number of object instances per class
-    max_num_instances = cfg['experiment']['num_spawned_obj_instances']
+    max_num_instances = cfg['experiment']['num_spawned_obj_instances']  # Maximum number of object instances per class
 
     # Get num_class * max_num_instances RGB colours, ordered by class
     colours = get_rgb_colours(num_class, max_num_instances)
@@ -273,8 +276,7 @@ def set_colour_ramps():
         # Set the dividing value to max number of spawned objects
         shader_nodes["max_inst_idx"].outputs[0].default_value = max_num_instances
         # Move the object position in colour ramp to centre of colour intervals to avoid border cases
-        shader_nodes["add_half_pos"].inputs[1].default_value = 1 / \
-            (2 * max_num_instances)
+        shader_nodes["add_half_pos"].inputs[1].default_value = 1 / (2 * max_num_instances)
 
         for i in range(max_num_instances):
             # Add new color ramp part at position pos
@@ -284,6 +286,7 @@ def set_colour_ramps():
             # We always use same alpha=1 value
             alpha = 1
             ramp.elements[-1].color = colours[class_idx][i] + (alpha,)
+
 
 def get_rgb_colours(num_hues, num_levels):
     """
@@ -306,6 +309,7 @@ def get_rgb_colours(num_hues, num_levels):
             colours[-1].append(colorsys.hsv_to_rgb(h, s, 1))
 
     return colours
+
 
 def assign_segment_mat():
     """
@@ -330,6 +334,7 @@ def assign_segment_mat():
     bpy.context.scene.world.use_nodes = False
     bpy.context.scene.world.color = bg_mat.node_tree.nodes['bg_colour'].color
 
+
 def cam_track_object(camera, target):
     """
     Makes camera track object by adding a track constraint and choosing the axis
@@ -340,16 +345,18 @@ def cam_track_object(camera, target):
     camera.constraints["Track To"].track_axis = 'TRACK_NEGATIVE_Z'
     camera.constraints["Track To"].up_axis = 'UP_Y'
 
+
 def ran_loc(space_dict):
     """
     Returns a uniformly random location in a cube specified by space_dict
-    space_dict should be a dictionary containting the entries 
+    space_dict should be a dictionary containting the entries
     xlow, xhigh, ylow, yhigh and zlow, zhigh
     """
     ran_loc = np.random.uniform([space_dict['xlow'], space_dict['ylow'], space_dict['zlow']],
                                 [space_dict['xhigh'], space_dict['yhigh'], space_dict['zhigh']])
 
     return mathutils.Vector(ran_loc)
+
 
 def ran_quat_orientation():
     """
@@ -365,11 +372,12 @@ def ran_quat_orientation():
 
     return mathutils.Quaternion(quat)
 
+
 def spawn_animated_object(objectname='LetterB', num_obj_inst=3, random_obj=False, space_dict=obj_rbp_space):
     """
     Copies an object and spawns it uniform-randomly in the cube given by space_dict
     Links the object to the 'AnimatedObjects' collection
-    space_dict should be a dictionary containting the entries 
+    space_dict should be a dictionary containting the entries
     xlow, xhigh, ylow, yhigh and zlow, zhigh
     """
     num_obj = len(object_list) * num_obj_inst
@@ -389,37 +397,38 @@ def spawn_animated_object(objectname='LetterB', num_obj_inst=3, random_obj=False
         new_obj = object.copy()
         new_obj.data = object.data.copy()
         new_obj.location = loc
-        # TODO  origin new_obj.rotation_mode = 'QUATERNION'
-        new_obj.rotation_mode = 'XYZ'
+        new_obj.rotation_mode = 'QUATERNION'
         new_obj.rotation_quaternion = rot_quat
         new_obj.pass_index = int(n % num_obj_inst)
 
-        print('### Creating object', objectname, new_obj.pass_index)
+        # print('### Creating object', objectname, new_obj.pass_index)
         bpy.data.collections['AnimatedObjects'].objects.link(new_obj)
 
         # (Re)link the object to make sure its physics work
         if new_obj in bpy.context.scene.rigidbody_world.collection.objects.items():
-            bpy.context.scene.rigidbody_world.collection.objects.unlink(
-                new_obj)
+            bpy.context.scene.rigidbody_world.collection.objects.unlink(new_obj)
         bpy.context.scene.rigidbody_world.collection.objects.link(new_obj)
+
 
 def animate_cam_predefined(start_frame=20, n_frames=5):
     """
     Makes predefined movements for the camera above the RubberPlate object and sets the keyframes accordingly.
     """
+
     locs = [
         (-0.8, 0.0, 1.29),
         (-0.77, -0.02, 1.27),
         (-0.77, 0.02, 1.27),
         (-0.74, 0, 1.33),
     ]
+
     current_frame = start_frame
     for loc in locs:
         # bpy.ops.object.select_all(action='DESELECT')
         # cam.select_set(True)
         cam.location = loc
 
-        print('Inserting keyframe at ', current_frame, loc)
+        # print('Inserting keyframe at ', current_frame, loc)
         # Insert location and rotation keyframe
         # bpy.ops.transform.translate(value=loc - cam.location)
         cam.keyframe_insert(data_path="location", frame=current_frame)
@@ -427,6 +436,7 @@ def animate_cam_predefined(start_frame=20, n_frames=5):
 
         if current_frame > start_frame + n_frames:
             break
+
 
 def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
     """
@@ -445,7 +455,6 @@ def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
     min_time_interval = avg_time_interval / 2
 
     # Calculate evenly distributed locations on ring around center of RubberPlate
-    # TODO avg_angle_diff = 2 * np.pi / (num_moves + 1)
     avg_angle_diff = 2 * np.pi / (num_moves + 1)
     min_angle_diff = avg_angle_diff / 2
     current_angle = 0  # np.pi #Start position
@@ -491,9 +500,10 @@ def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
                                                         std=cfg['experiment']['cam_time_frame_std'],
                                                         min_int=min_time_interval)
 
+
 def sample_normal_with_minimum(mean, std, min_int):
     """
-    Sample interval by sampling a Normal distribution parametrized by mean and std 
+    Sample interval by sampling a Normal distribution parametrized by mean and std
     with minimum interval min_int
     """
     interval = np.NINF
@@ -502,6 +512,7 @@ def sample_normal_with_minimum(mean, std, min_int):
         interval = np.random.normal(loc=mean, scale=std)
 
     return interval
+
 
 def stop_obj_animation():
     """
@@ -520,6 +531,7 @@ def stop_obj_animation():
         # tmp = obj.rotation_euler.to_matrix().to_4x4()
         # obj.rotation_euler = (tmp @ obj.matrix_world).to_euler()
         # Disable physics animation by setting kinematic (GUI: "Animated) to True
+
 
 def get_cam_intrinsics():
     """
@@ -554,9 +566,10 @@ def get_cam_intrinsics():
 
     return K
 
+
 def render(start_frame, n_frames, save_pose_depth=True, path=None):
     """
-    Small helper function to actually render 
+    Small helper function to actually render
     If save_pose_depth, saves poses and depth information
     """
 
@@ -601,10 +614,11 @@ def render(start_frame, n_frames, save_pose_depth=True, path=None):
 
         print("### Finished rendering frame {} ###".format(f))
 
+
 def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
     """
     First renders the normal image with engine specified in cfg
-    If depth, renders the depth image with EEVEE engine to avoid distortion due 
+    If depth, renders the depth image with EEVEE engine to avoid distortion due
     to cycles pinhole camera
     If segmentation, colours the animated objects and renders again TODO
     """
@@ -622,8 +636,7 @@ def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
     render_node = node_tree.nodes["Render Layers"]
 
     if cfg['experiment']['mode']['sequence']:
-        output_dir = os.path.join(
-            cfg['output']['path'], 'Seq{:03d}'.format(seq_idx))
+        output_dir = os.path.join(cfg['output']['path'], 'Seq{:03d}'.format(seq_idx))
         os.makedirs(output_dir)
 
         # save preliminary config:
@@ -631,7 +644,7 @@ def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
             yaml.dump(cfg, outfile, default_flow_style=False)
     else:
         # Use fixed output path for all images
-        output_dir = basepath + '/' + cfg['output']['path']
+        output_dir = cfg['output']['path']
         os.makedirs(output_dir, exist_ok=True)
 
         path = os.path.join(cfg['output']['path'], 'images', 'im{:04d}gt.png')
@@ -669,18 +682,15 @@ def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
         png_node.base_path = output_dir + "/images/"
         # png_node.name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         if not cfg['experiment']['mode']['sequence']:
-            # specify image output filename
-            png_node.file_slots[0].path = output_filename_rgb
-        # number of bits per color channel
-        png_node.format.color_depth = cfg['render']['color_depth']
+            png_node.file_slots[0].path = output_filename_rgb  # specify image output filename
+        png_node.format.color_depth = cfg['render']['color_depth']  # number of bits per color channel
         node_tree.links.new(render_node.outputs['Image'], png_node.inputs[0])
 
     if cfg['experiment']['mode']['depth']:
         # Set depth output to viewer node for later postprocessing
         exr_node = node_tree.nodes['depth_exr']
         if cfg['experiment']['mode']['sequence']:
-            exr_node.base_path = output_dir + \
-                "/depth/imdepthgt.exr"  # im{:04d}depthgt.exr
+            exr_node.base_path = output_dir + "/depth/imdepthgt.exr"  # im{:04d}depthgt.exr
         else:
             exr_node.base_path = output_dir + "/depth/" + output_filename_depth
         node_tree.links.new(render_node.outputs['Depth'], exr_node.inputs[0])
@@ -744,6 +754,7 @@ def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
             os.rename(src, dst)
             i += 1
 
+
 def undistort_depth(depth_img):
     """
     Transforms a radially distorted depth image base on a pinhole camera to orthographic depth
@@ -758,19 +769,18 @@ def undistort_depth(depth_img):
     pixel_coord = np.mgrid[:depth_img.shape[0], :depth_img.shape[1]]
 
     # Distance of every pixel to the center in pixel units
-    d_pix = np.sqrt((pixel_coord[1, :, :] - cx) **
-                    2 + (pixel_coord[0, :, :] - cy) ** 2)
+    d_pix = np.sqrt((pixel_coord[1, :, :] - cx) ** 2 + (pixel_coord[0, :, :] - cy) ** 2)
     # arctan gives the ray angle here
-    depth_undistorted = np.multiply(
-        np.cos(np.arctan(d_pix / f_pix)), depth_img)
+    depth_undistorted = np.multiply(np.cos(np.arctan(d_pix / f_pix)), depth_img)
 
     return depth_undistorted
+
 
 def to_cam_coord(object, invert_z=False, bb=False):
     """
     Translates object's coordinates to camera coordinate system and returns as np array
-    If invert_z, changes the sign of the returned z position; this should be used when 
-    exporting as objects captured by the camera have a negative z value in the camera's 
+    If invert_z, changes the sign of the returned z position; this should be used when
+    exporting as objects captured by the camera have a negative z value in the camera's
     coordinate system
     If bb, also returns object's bounding box in camera coordinates
     """
@@ -804,6 +814,7 @@ def to_cam_coord(object, invert_z=False, bb=False):
 
     return ret, bb
 
+
 def run(reset=True, animate=False, render=False, segmentation=False, randomize=False, seq_idx=None):
     """
     Runs different components of the programs in an aggregated way. Each component indicated
@@ -822,12 +833,9 @@ def run(reset=True, animate=False, render=False, segmentation=False, randomize=F
         randomize_lighting()
 
     if animate:
-        ######################### Change ###################################
-        # spawn_animated_object(random_obj=False,
-        ######################### Change ###################################
-        spawn_animated_object(random_obj=True,
+        spawn_animated_object(random_obj=False,
                               num_obj_inst=cfg['experiment']['num_spawned_obj_instances'],
-                              space_dict=cfg['space_val']['obj_spawn_space'])
+                              space_dict=obj_rbp_space)
         cam_track_object(cam, "RubberPlate")
         if cfg['experiment']['camera_movement_predefined']:
             print("follow predefined camera trajectory")
@@ -851,24 +859,20 @@ def run(reset=True, animate=False, render=False, segmentation=False, randomize=F
     if segmentation:
         assign_segment_mat()
 
+
 def main():
     """
     Main method to create & render multiple scenes
-    Configuration is entirely basepath & config name at the start and config; the rest is 
+    Configuration is entirely basepath & config name at the start and config; the rest is
     saved in the blend file and need not be changed unless there are fundamental setup changes
     Every background image is used twice: Once the original and once the same
     image rotated around z-axis by 90°
     """
-    print("PPPPPP")
-
     cfg['output']['path'] += '_' + datetime_str
     if not cfg['experiment']['mode']['sequence']:
         if cfg['experiment']['n_frames'] > 1:
-            print(
-                "FabWarning: Sequence flag was not set even though a sequence length is given!")
+            print("FabWarning: Sequence flag was not set even though a sequence length is given!")
             cfg['experiment']['n_frames'] = 1
-
-    print(cfg['input']['bg_imgs'])
 
     img_path, _, bg_imgs = next(os.walk(cfg['input']['bg_imgs']))
 
@@ -889,7 +893,7 @@ def main():
             break
 
         bg_img = bg_imgs[int(n / 4)]
-        bg_img_path = img_path + '/' + bg_img
+        bg_img_path = os.path.join(img_path, bg_img)
 
         # print("bg_img", bg_img)
         # print("bg_img_path", bg_img_path)
@@ -901,7 +905,7 @@ def main():
         """
         change_bg_image(path=bg_img_path)
         cfg['experiment']['bg_img_used'] = bg_img
-
+        print(f"using {bg_img} to generate new background.")
         # For 4 scenes, background is either original, flipped, rotated or flipped and rotated
         if n % 4 == 0:
             cfg['experiment']['bg_img_used'] = bg_img
@@ -928,9 +932,8 @@ def main():
             # bpy.data.worlds['World'].node_tree.nodes["Mapping"].rotation[2] = 0
             # bpy.data.worlds['World'].node_tree.nodes["Mapping"].scale[1] = -1
 
-        #run(reset=True, animate=True, render=True, segmentation=True, randomize=True)
-        run(reset=True, animate=True, render=True,
-            segmentation=False, randomize=True, seq_idx=n)
+        #        run(reset=True, animate=True, render=True, segmentation=True, randomize=True)
+        run(reset=True, animate=True, render=True, segmentation=False, randomize=True, seq_idx=n)
 
     if not cfg['experiment']['mode']['sequence']:
         # Dump render/experiment config
@@ -939,6 +942,31 @@ def main():
         with open(cfg['output']['path'] + '/cfg.yaml', 'w') as outfile:
             yaml.dump(cfg, outfile, default_flow_style=False)
 
+
+# reset_colour_ramps()
+# set_colour_ramps()
+# assign_segment_mat()
+# reset_comp_tree _links()
+# reset_materials()
+# change_bg_image(path='/home/bol7tue/git/pcl_pose_estimation/dat/hdri_background/xiequ_yuan_4k_flop.hdr')
+# stop_obj_animation()
+# cam_track_object(cam, 'RubberPlate')
+# reset_lighting()
+# randomize_lighting()
+# randomize_rbplate_texture()
+# reset_cam()
+# cam_track_object(cam, 'RubberPlate')
+# ran_animate_cam(cfg['experiment']['num_camera_moves'], cfg['experiment']['start_frame'], cfg['experiment']['n_frames'])
+
 main()
+
+# run()
+
+# run(reset=True, animate=True, render=False, segmentation=False)
+# run(reset=True, animate=True, render=False, segmentation=True)
+# run(reset=True, animate=True, render=True, segmentation=False)
+# run(reset=True, animate=True, render=True, segmentation=True)
+# run(reset=False, animate=False, render=True, segmentation=True)
+
 
 print('##### Finished script animate_camera.py #####')

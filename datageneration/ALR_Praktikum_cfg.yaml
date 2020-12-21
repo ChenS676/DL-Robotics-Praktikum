@@ -2,10 +2,10 @@ experiment:
   mode:
     sequence: True
     depth: True
-    pose: True
-    segment: True
+    pose: False
+    segment: False
     image: True
-    box: True
+    box: False
   random_seed: 42
   camera_movement_predefined: True
   num_camera_moves: 2
@@ -22,11 +22,11 @@ experiment:
   # The _dev values in lights and background determine the deviation in uniform randomization
   # from the default value
   sun_light:
-    power: 0.7
-    power_dev: 0.2
+    power: 0.8
+    power_dev: 0.2 # 0.2
   area_lights:
-    power: 50
-    power_dev: 20
+    power: 60 # Explaination: more reflected region with more than 100
+    power_dev: 20 # original 20
     #Color is the RGB strength for all of the 3 color channels (same)
     color: 0.5
     color_dev: 0.3
