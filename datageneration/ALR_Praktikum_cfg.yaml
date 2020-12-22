@@ -54,10 +54,11 @@ space_val:
   #Original camera position and rotation (above the rubber plate)
   camera:
     loc: { x: -1.0, y: 0.0, z: 1.5 }
-    quat_rot: { w: 1.0, x: 0.0, y: 0.0, z: 0.0 }
+    # quat_rot: { w: 1.0, x: 0.0, y: 0.0, z: 0.0 }
+    quat_rot: { w: 0.0, x: 0.0, y: 0.0, z: 0.0 }
   cam_mov_space:
     radius: [0.1, 0.8] # orig: [0.1, 0.8]
     z: [1.2, 1.4] # orig: [1.2, 1.4]
     angle_dev: 0.2 # orig: 0.2
   obj_spawn_space:
-    { xlow: -0.9, xhigh: -0.5, ylow: -0.3, yhigh: 0.3, zlow: 2.0, zhigh: 2.5 }
+    { xlow: -0.9, xhigh: -0.8, ylow: -0.3, yhigh: 0.3, zlow: 2.0, zhigh: 2.2 }

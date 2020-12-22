@@ -33,7 +33,7 @@ if dump_materials:
     # Record the original materials of every object in the scene to reset segmentation if needed
     for obj in bpy.data.objects:
         if hasattr(obj.data, 'materials') and len(obj.data.materials) > 0:
-            print(obj.name)
+            # print(obj.name)
             orig_materials[obj.name] = obj.data.materials[0].name
 
     orig_materials['datetime'] = datetime_str
@@ -92,7 +92,7 @@ np.random.seed(datetime.now().microsecond)
 # Original camera position and rotation (above the rubber plate)
 or_loc = mathutils.Vector(cfg['space_val']['camera']['loc'].values())
 or_rot = mathutils.Quaternion(cfg['space_val']['camera']['quat_rot'].values())
-
+print(f"or_rot is {or_rot}")
 # Space above rubber plate in which camera moves around
 cam_rbp_space = cfg['space_val']['cam_mov_space']
 
@@ -105,6 +105,7 @@ Reset methods
 """
 
 def reset_cam():
+    print(f"reset_camera_{cam.__dir__()}")
     cam.animation_data_clear()
     cam.location = or_loc
     cam.rotation_quaternion = or_rot
@@ -272,7 +273,7 @@ def set_colour_ramps():
         shader_nodes = bpy.data.materials[mat_name].node_tree.nodes
         ramp = shader_nodes["SegColour"].color_ramp
 
-        print(mat_name)
+        # print(mat_name)
         # Set the dividing value to max number of spawned objects
         shader_nodes["max_inst_idx"].outputs[0].default_value = max_num_instances
         # Move the object position in colour ramp to centre of colour intervals to avoid border cases
@@ -354,7 +355,7 @@ def ran_loc(space_dict):
     """
     ran_loc = np.random.uniform([space_dict['xlow'], space_dict['ylow'], space_dict['zlow']],
                                 [space_dict['xhigh'], space_dict['yhigh'], space_dict['zhigh']])
-
+    # print(f"random location of the {ran_loc}")
     return mathutils.Vector(ran_loc)
 
 
@@ -369,7 +370,6 @@ def ran_quat_orientation():
             np.sqrt(1 - u) * np.cos(2 * np.pi * v),
             np.sqrt(u) * np.sin(2 * np.pi * w),
             np.sqrt(u) * np.cos(2 * np.pi * w))
-
     return mathutils.Quaternion(quat)
 
 
@@ -391,7 +391,9 @@ def spawn_animated_object(objectname='LetterB', num_obj_inst=3, random_obj=False
 
         object = bpy.data.objects[objectname]
 
+        # determine the location of the objects
         loc = ran_loc(space_dict)
+        # determine the orientation of the objects
         rot_quat = ran_quat_orientation()
 
         new_obj = object.copy()
@@ -414,23 +416,32 @@ def animate_cam_predefined(start_frame=20, n_frames=5):
     """
     Makes predefined movements for the camera above the RubberPlate object and sets the keyframes accordingly.
     """
-
+    # TODO original
+    print(f"animate_cam_predefined.")
+    # locs = [
+    #     (-0.8, 0.0, 1.29),
+    #     (-0.77, -0.02, 1.27),
+    #     (-0.77, 0.02, 1.27),
+    #     (-0.74, 0, 1.33),
+    # ]
     locs = [
-        (-0.8, 0.0, 1.29),
-        (-0.77, -0.02, 1.27),
-        (-0.77, 0.02, 1.27),
-        (-0.74, 0, 1.33),
+        (-0.8, 0.00, 1.29),
+        (-0.8, 0.001, 1.29),
+        (-0.8, 0.002, 1.29),
+        (-0.8, 0.003, 1.29),
     ]
 
     current_frame = start_frame
     for loc in locs:
-        # bpy.ops.object.select_all(action='DESELECT')
-        # cam.select_set(True)
+        bpy.ops.object.select_all(action='DESELECT')
+        cam.select_set(True)
         cam.location = loc
-
+        print(f"location is {cam.location}")
         # print('Inserting keyframe at ', current_frame, loc)
         # Insert location and rotation keyframe
         # bpy.ops.transform.translate(value=loc - cam.location)
+        # print(f"attrs of camera are {cam.__dir__()}")
+        print(f"rotation of camera are {cam.rotation_quaternion}")
         cam.keyframe_insert(data_path="location", frame=current_frame)
         current_frame += 1
 
@@ -445,10 +456,10 @@ def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
     evenly spaced between start_frame and the last frame.
     The movement goals are evenly placed on a donut around the center of the rubber plate with a uniform radius.
     """
-
+    int("ran_animate_cam is running.")
     current_frame = start_frame
-    # cam.keyframe_insert(data_path="location", frame=current_frame)
-    # cam.keyframe_insert(data_path="rotation_euler", frame=current_frame)
+    cam.keyframe_insert(data_path="location", frame=current_frame)
+    cam.keyframe_insert(data_path="rotation_euler", frame=current_frame)
 
     # The average time interval between keyframes/movement targets
     avg_time_interval = (last_frame - start_frame) / num_moves
@@ -460,7 +471,9 @@ def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
     current_angle = 0  # np.pi #Start position
 
     # Randomized factor to either go clockwise or counter clockwise
-    angle_fac = np.random.choice([-1, 1])
+    # angle_fac = np.random.choice([-1, 1])
+    ## TODO original
+    angle_fac = 0
 
     center_x = bpy.data.objects['RubberPlate'].location[0]
     center_y = bpy.data.objects['RubberPlate'].location[1]
@@ -471,13 +484,14 @@ def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
     # Insert keyframe for every move
     for mov in range(num_moves + 1):
 
-        current_angle += angle_fac * sample_normal_with_minimum(
-            mean=avg_angle_diff,
-            std=cfg['space_val']['cam_mov_space']['angle_dev'],
-            min_int=min_angle_diff)
-
+        # current_angle += angle_fac * sample_normal_with_minimum(
+        #     mean=avg_angle_diff,
+        #     std=cfg['space_val']['cam_mov_space']['angle_dev'],
+        #     min_int=min_angle_diff)
+        print(f"current angle is {current_angle}")
         radius = np.random.uniform(radius_interval[0], radius_interval[1])
         z = np.random.uniform(z_interval[0], z_interval[1])
+        print(f"z axis is {z}")
         x = radius * np.cos(current_angle) + center_x
         y = radius * np.sin(current_angle) + center_y
 
@@ -486,7 +500,7 @@ def ran_animate_cam(num_moves=3, start_frame=10, last_frame=250):
         bpy.ops.object.select_all(action='DESELECT')
         cam.select_set(True)
 
-        print('Inserting keyframe at ', current_frame, loc)
+        # print('Inserting keyframe at ', current_frame, loc)
         # Insert location and rotation keyframe
         bpy.ops.transform.translate(value=loc - cam.location)
         cam.keyframe_insert(data_path="location", frame=current_frame)
@@ -582,8 +596,9 @@ def render(start_frame, n_frames, save_pose_depth=True, path=None):
         bpy.ops.render.render(write_still=False)
 
         if save_pose_depth and cfg['experiment']['mode']['depth']:
+            pass
             # Get depth information
-            print("FabDebug: Get depth information skipped")
+            # print("FabDebug: Get depth information skipped")
             # depth_exr = OpenEXR.InputFile('{}/depth/depth{:04d}.exr'.format(path, f))
             # depth_img = np.reshape(array.array('f', depth_exr.channel('Z.V')), (h, w))
             #
@@ -622,7 +637,7 @@ def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
     to cycles pinhole camera
     If segmentation, colours the animated objects and renders again TODO
     """
-    print("FabDebug: render_and_save, seq_idx:", seq_idx)
+    # print("FabDebug: render_and_save, seq_idx:", seq_idx)
 
     cfg['render_start'] = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     cfg['render']['cam_intr'] = get_cam_intrinsics()
@@ -726,7 +741,7 @@ def render_and_save(start_frame=0, n_frames=240, seq_idx=None):
     # rename output files
     if cfg['experiment']['mode']['image']:
         image_dir = os.path.join(output_dir, 'images')
-        print("Rename image_dir:", image_dir)
+        # print("Rename image_dir:", image_dir)
         files = sorted(os.listdir(image_dir))
         matches = [file for file in files if not file.endswith(".png")]
 
@@ -825,8 +840,8 @@ def run(reset=True, animate=False, render=False, segmentation=False, randomize=F
         reset_anim_objects()
         reset_materials()
         reset_frames()
-        cam_track_object(cam, 'RubberPlate')
-        print("Finished resetting")
+        # cam_track_object(cam, 'RubberPlate')
+        # print("Finished resetting")
 
     if randomize:
         randomize_rbplate_texture()
@@ -847,14 +862,14 @@ def run(reset=True, animate=False, render=False, segmentation=False, randomize=F
                             cfg['experiment']['start_frame'],
                             cfg['experiment']['n_frames'])
 
-        print("Finished animating")
+        # print("Finished animating")
 
     if render:
-        print("Starting render")
+        # print("Starting render")
         render_and_save(start_frame=cfg['experiment']['start_frame'],
                         n_frames=cfg['experiment']['n_frames'],
                         seq_idx=seq_idx)
-        print("Finished rendering & saving all")
+        # print("Finished rendering & saving all")
 
     if segmentation:
         assign_segment_mat()
@@ -905,7 +920,7 @@ def main():
         """
         change_bg_image(path=bg_img_path)
         cfg['experiment']['bg_img_used'] = bg_img
-        print(f"using {bg_img} to generate new background.")
+        # print(f"using {bg_img} to generate new background.")
         # For 4 scenes, background is either original, flipped, rotated or flipped and rotated
         if n % 4 == 0:
             cfg['experiment']['bg_img_used'] = bg_img
