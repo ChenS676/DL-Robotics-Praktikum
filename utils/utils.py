@@ -5,7 +5,7 @@ import yaml
 import OpenEXR
 import numpy as np
 import Imath
-
+import cv2
 def assign_dict(config: dict):
 
     last_layer = False
@@ -42,7 +42,7 @@ def get_exr_rgb(path):
     img = np.where(img<=0.0031308, 12.92*img, 1.055*np.power(img, 1/2.4) - 0.055)
     return (img*255).astype(np.uint8)
 
-def get_exr_depth(filepath: Path):
+def get_exr_depth(filepath: Path, target_size):
     exrfile = OpenEXR.InputFile(Path(filepath).as_posix())
     raw_bytes = exrfile.channel('Z.V', Imath.PixelType(Imath.PixelType.FLOAT))
     depth_vector = np.frombuffer(raw_bytes, dtype=np.float32)
@@ -51,5 +51,6 @@ def get_exr_depth(filepath: Path):
     width = exrfile.header()['displayWindow'].max.x + \
         1 - exrfile.header()['displayWindow'].min.x
     depth_map = np.reshape(depth_vector, (height, width))
+    depth_map = cv2.resize(depth_map, (target_size[1], target_size[0]))
     return depth_map
 

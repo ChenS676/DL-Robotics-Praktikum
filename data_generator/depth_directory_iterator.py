@@ -254,7 +254,7 @@ class Depth_DirectoryIterator():
         # build batch of y
         filepaths = self.y_filepath
         for i, j in enumerate(index_array):
-            y = get_exr_depth(filepaths[j])
+            y = get_exr_depth(filepaths[j], self.target_size)
             # Pillow images should be closed after `load_img`,
             # but not PIL images.
             batch_y[i] = y
