@@ -2,9 +2,9 @@
 # DA-RNN
 # Single Stream Network
 # --------------------------------------------------------
+import tensorflow as tf
 
-
-from tensorflow.python.keras.models import Model
+from tensorflow.python.keras import Model
 from tensorflow.python.keras import layers
 from tensorflow.python.keras.layers import Dense, Input, BatchNormalization, Activation, Conv2D, SeparableConv2D, MaxPooling2D, Conv2DTranspose, Softmax
 
@@ -240,7 +240,7 @@ def single_stream(input_shape: np.ndarray):
 
     output = softmax(x)
 
-    model = Model(inputs=input, outputs=output, name='single_stream_DA-RNN')
+    model = keras.Model(inputs=input, outputs=output, name='single_stream_DA-RNN')
 
     # model.load_weights("xception_weights_tf_dim_ordering_tf_kernels.h5")
 
