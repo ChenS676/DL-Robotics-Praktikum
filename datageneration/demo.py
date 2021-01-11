@@ -3,13 +3,12 @@
 import os
 from pathlib import Path, PurePath, PurePosixPath
 import tensorflow as tf
-import tensorflow_datasets as tfds
+
 from IPython.display import clear_output
 import matplotlib.pyplot as plt
-from tensorflow.compat.v1 import ConfigProto
-from tensorflow.compat.v1 import InteractiveSession
-from models.single_stream import single_stream, single_blockwise_stream
-from models.double_stream import double_stream
+
+from my_models.single_stream import single_stream, single_blockwise_stream
+from my_models.double_stream import double_stream
 from utils.parser import parse_args
 from utils.utils import assign_dict, get_exr_depth
 import yaml
@@ -181,7 +180,7 @@ if __name__ == '__main__':
         print(x.shape)
         print(y.shape)
 
-    dataset, info = tfds.load('oxford_iiit_pet:3.*.*', with_info=True)
+    # dataset, info = tfds.load('oxford_iiit_pet:3.*.*', with_info=True)
 
 
     train = dataset['train'].map(load_image_train, num_parallel_calls=tf.data.experimental.AUTOTUNE)
